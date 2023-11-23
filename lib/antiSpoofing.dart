@@ -85,7 +85,7 @@ class FaceAntiSpoofing {
         floatValues[i][j] = [r, g, b];
       }
     }
-   // print("normalized imageeeeeeeeeee ${floatValues}");
+    // print("normalized imageeeeeeeeeee ${floatValues}");
     return floatValues;
   }
 }

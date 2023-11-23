@@ -23,7 +23,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  File? _capturedImage;
+  File? faceRecog;
   Face? detectedFace;
   File? cropSaveFile;
   tflite.Interpreter? interpreter;
@@ -42,13 +42,14 @@ class _MyAppState extends State<MyApp> {
             title: const Text('FaceCamera example app'),
           ),
           body: Builder(builder: (context) {
-            if (cropSaveFile != null) {
+            if (faceRecog != null) {
               return Center(
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
                     Image.file(
-                      cropSaveFile!,
+                      //_capturedImage
+                      faceRecog!,
                       width: double.maxFinite,
                       fit: BoxFit.fitWidth,
                     ),
@@ -56,8 +57,7 @@ class _MyAppState extends State<MyApp> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         ElevatedButton(
-                            onPressed: () =>
-                                setState(() => cropSaveFile = null),
+                            onPressed: () => setState(() => faceRecog = null),
                             child: const Text(
                               'Capture Again',
                               textAlign: TextAlign.center,
@@ -81,8 +81,9 @@ class _MyAppState extends State<MyApp> {
                 autoCapture: true,
                 defaultCameraLens: CameraLens.front,
                 onCapture: (File? image) async {
-                  setState(() => _capturedImage = image);
-                  cropImage();
+                  //setState(() => _capturedImage = image);
+                  await cropImage(image, context);
+                  setState(() {});
                 },
                 onFaceDetected: (Face? face) {
                   print("Face detected $face");
@@ -111,14 +112,14 @@ class _MyAppState extends State<MyApp> {
             style: const TextStyle(
                 fontSize: 14, height: 1.5, fontWeight: FontWeight.w400)),
       );
-  cropImage() async {
+  cropImage(File? _capturedImage, context) async {
     img.Image capturedImage =
         img.decodeImage(File(_capturedImage?.path ?? "").readAsBytesSync())!;
     if (detectedFace != null && detectedFace!.boundingBox != null) {
       img.Image faceCrop = img.copyCrop(
         capturedImage,
-        x: detectedFace!.boundingBox.left.toInt() + 20,
-        y: detectedFace!.boundingBox.top.toInt() + 30,
+        x: detectedFace!.boundingBox.left.toInt(),
+        y: detectedFace!.boundingBox.top.toInt() + 50,
         width: detectedFace!.boundingBox.width.toInt(),
         height: detectedFace!.boundingBox.height.toInt(),
       );
@@ -133,15 +134,37 @@ class _MyAppState extends State<MyApp> {
         antiSpoofingScore = await faceAntiSpoofing.loadModel(cropSaveFile);
         print("antiSpoofingScoreeeeeeeeeeeee ${antiSpoofingScore}");
         setState(() {});
-
         if (antiSpoofingScore! < THRESHOLD) {
+          faceRecog = cropSaveFile;
+          
+
+          File  localFace = File(AssetImage("assets/sri.jpg").assetName);
+          //faceRecog = localFace;
+          print("localFacee ${localFace}");
           print("face recognised!!!!!!!!!!!!!!");
         } else {
           print("spoofing detected!!!!!!!!!!!!!!!!!");
+
+          return showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                    title: Text("Spoofing Detected"),
+                    content: Text("Please place your face in the camera"),
+                    actions: [
+                      TextButton(
+                          onPressed: () {
+                            faceRecog = null;
+                            Navigator.pop(context);
+                          },
+                          child: Text("OK"))
+                    ],
+                  ));
         }
       }
     }
   }
+
+  
 
   int laplacian(File imageFile) {
     img.Image capturedImage =
@@ -184,6 +207,4 @@ class _MyAppState extends State<MyApp> {
   img.Pixel getPixel(img.Image image, int x, int y) {
     return image.getPixel(x, y);
   }
-
- 
 }
