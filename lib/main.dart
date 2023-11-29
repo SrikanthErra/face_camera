@@ -1,10 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:face_liveness/antiSpoofing.dart';
+import 'package:face_liveness/appconstants.dart';
+import 'package:face_liveness/faceMatchView.dart';
+import 'package:face_liveness/viewModel/faceMatchingViewModel.dart';
 import 'package:flutter/material.dart';
 
 import 'package:face_camera/face_camera.dart';
 import 'package:image/image.dart' as img;
+import 'package:provider/provider.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tflite;
 
 void main() async {
@@ -36,72 +42,85 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-          appBar: AppBar(
-            title: const Text('FaceCamera example app'),
-          ),
-          body: Builder(builder: (context) {
-            if (faceRecog != null) {
-              return Center(
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Image.file(
-                      //_capturedImage
-                      faceRecog!,
-                      width: double.maxFinite,
-                      fit: BoxFit.fitWidth,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ElevatedButton(
-                            onPressed: () => setState(() => faceRecog = null),
-                            child: const Text(
-                              'Capture Again',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w700),
-                            )),
-                        Text(
-                          "$antiSpoofingScore",
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-              );
-            }
-            return SmartFaceCamera(
-                autoCapture: true,
-                defaultCameraLens: CameraLens.front,
-                onCapture: (File? image) async {
-                  //setState(() => _capturedImage = image);
-                  await cropImage(image, context);
-                  setState(() {});
-                },
-                onFaceDetected: (Face? face) {
-                  print("Face detected $face");
-                  setState(() {
-                    detectedFace = face;
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => FaceMatchingViewModel(),
+        ),
+      ],
+      child: MaterialApp(
+        home: Scaffold(
+            appBar: AppBar(
+              title: const Text('FaceCamera example app'),
+            ),
+            body: Builder(builder: (context) {
+              if (faceRecog != null) {
+                return Center(
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Image.file(
+                        //_capturedImage
+                        faceRecog!,
+                        width: double.maxFinite,
+                        fit: BoxFit.fitWidth,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () async {
+                           Navigator.push(context, MaterialPageRoute(builder: (context)=>FaceMatchView(cropSaveFile: cropSaveFile,)));
+                            },
+                            child: Text("Face Matching"),
+                            /* onPressed: () => setState(() => faceRecog = null),
+                              child: const Text(
+                                'Capture Again',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w700),
+                              ) */
+                          ),
+                          Text(
+                            "$antiSpoofingScore",
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
+                );
+              }
+              return SmartFaceCamera(
+                  autoCapture: true,
+                  defaultCameraLens: CameraLens.front,
+                  onCapture: (File? image) async {
+                    //setState(() => _capturedImage = image);
+                    await cropImage(image, context);
+                    print("source image id ${Appconstants.sourceFile}");
+                    setState(() {});
+                  },
+                  onFaceDetected: (Face? face) {
+                    print("Face detected $face");
+                    setState(() {
+                      detectedFace = face;
+                    });
+                    //Do something
+                  },
+                  messageBuilder: (context, face) {
+                    if (face == null) {
+                      return _message('Place your face in the camera');
+                    }
+                    if (!face.wellPositioned) {
+                      return _message('Center your face in the square');
+                    }
+                    return const SizedBox.shrink();
                   });
-                  //Do something
-                },
-                messageBuilder: (context, face) {
-                  if (face == null) {
-                    return _message('Place your face in the camera');
-                  }
-                  if (!face.wellPositioned) {
-                    return _message('Center your face in the square');
-                  }
-                  return const SizedBox.shrink();
-                });
-          })),
+            })),
+      ),
     );
   }
 
@@ -136,15 +155,12 @@ class _MyAppState extends State<MyApp> {
         setState(() {});
         if (antiSpoofingScore! < THRESHOLD) {
           faceRecog = cropSaveFile;
-          
-
-          File  localFace = File(AssetImage("assets/sri.jpg").assetName);
+          File localFace = File(AssetImage("assets/sri.jpg").assetName);
           //faceRecog = localFace;
           print("localFacee ${localFace}");
           print("face recognised!!!!!!!!!!!!!!");
         } else {
           print("spoofing detected!!!!!!!!!!!!!!!!!");
-
           return showDialog(
               context: context,
               builder: (context) => AlertDialog(
@@ -164,7 +180,14 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  
+  Future<Image> convertFileToImage(File picture) async {
+    List<int> imageBase64 = picture.readAsBytesSync();
+    String imageAsString = base64Encode(imageBase64);
+    Uint8List uint8list = base64.decode(imageAsString);
+    Image image = Image.memory(uint8list);
+    print("converted image ${image}");
+    return image;
+  }
 
   int laplacian(File imageFile) {
     img.Image capturedImage =
@@ -189,9 +212,11 @@ class _MyAppState extends State<MyApp> {
         for (int i = 0; i < size; i++) {
           for (int j = 0; j < size; j++) {
             img.Pixel pixelValue = getPixel(capturedImage, x + i, y + j);
-            result += pixelValue.r * laplace[i][j];
-            result += pixelValue.g * laplace[i][j];
-            result += pixelValue.b * laplace[i][j];
+            if (x + i < capturedImage.height && y + j < capturedImage.width) {
+              result += pixelValue.r * laplace[i][j];
+              result += pixelValue.g * laplace[i][j];
+              result += pixelValue.b * laplace[i][j];
+            }
           }
         }
         // Cast result to int before using it in the comparison

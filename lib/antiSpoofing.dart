@@ -23,7 +23,6 @@ class FaceAntiSpoofing {
   }
 
   double antiSpoofing(File? cropSaveFile) {
-    // loadModel();
     img.Image? image = img.decodeImage(cropSaveFile!.readAsBytesSync());
     // Resize the image
     img.Image resizedImage = img.copyResize(image!,
