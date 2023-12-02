@@ -1,7 +1,7 @@
 class FaceMatchingResponse {
   List<Result>? result;
-  Null? message;
-  Null? code;
+  String? message;
+  String? code;
 
   FaceMatchingResponse({this.result, this.message, this.code});
 

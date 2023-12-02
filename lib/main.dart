@@ -54,7 +54,7 @@ class _MyAppState extends State<MyApp> {
               title: const Text('FaceCamera example app'),
             ),
             body: Builder(builder: (context) {
-              if (faceRecog != null) {
+              /* if (faceRecog != null) {
                 return Center(
                   child: Stack(
                     alignment: Alignment.bottomCenter,
@@ -70,30 +70,30 @@ class _MyAppState extends State<MyApp> {
                         children: [
                           ElevatedButton(
                             onPressed: () async {
-                           Navigator.push(context, MaterialPageRoute(builder: (context)=>FaceMatchView(cropSaveFile: cropSaveFile,)));
+                              final faceMatchingProvider =
+                                  Provider.of<FaceMatchingViewModel>(context,
+                                      listen: false);
+                              await faceMatchingProvider.faceMatchingApiCall(
+                                  context, cropSaveFile!);
                             },
                             child: Text("Face Matching"),
-                            /* onPressed: () => setState(() => faceRecog = null),
-                              child: const Text(
-                                'Capture Again',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w700),
-                              ) */
                           ),
-                          Text(
-                            "$antiSpoofingScore",
-                            style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
+                          ElevatedButton(
+                            onPressed: () async {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => MyApp()),
+                              );
+                            },
+                            child: Text("Capture Again"),
                           ),
                         ],
                       )
                     ],
                   ),
                 );
-              }
+              } */
               return SmartFaceCamera(
                   autoCapture: true,
                   defaultCameraLens: CameraLens.front,
@@ -132,6 +132,8 @@ class _MyAppState extends State<MyApp> {
                 fontSize: 14, height: 1.5, fontWeight: FontWeight.w400)),
       );
   cropImage(File? _capturedImage, context) async {
+    final faceMatchingProvider =
+        Provider.of<FaceMatchingViewModel>(context, listen: false);
     img.Image capturedImage =
         img.decodeImage(File(_capturedImage?.path ?? "").readAsBytesSync())!;
     if (detectedFace != null && detectedFace!.boundingBox != null) {
@@ -155,10 +157,11 @@ class _MyAppState extends State<MyApp> {
         setState(() {});
         if (antiSpoofingScore! < THRESHOLD) {
           faceRecog = cropSaveFile;
-          File localFace = File(AssetImage("assets/sri.jpg").assetName);
-          //faceRecog = localFace;
-          print("localFacee ${localFace}");
+
           print("face recognised!!!!!!!!!!!!!!");
+
+          await faceMatchingProvider.faceMatchingApiCall(
+              context, cropSaveFile!);
         } else {
           print("spoofing detected!!!!!!!!!!!!!!!!!");
           return showDialog(
@@ -178,15 +181,6 @@ class _MyAppState extends State<MyApp> {
         }
       }
     }
-  }
-
-  Future<Image> convertFileToImage(File picture) async {
-    List<int> imageBase64 = picture.readAsBytesSync();
-    String imageAsString = base64Encode(imageBase64);
-    Uint8List uint8list = base64.decode(imageAsString);
-    Image image = Image.memory(uint8list);
-    print("converted image ${image}");
-    return image;
   }
 
   int laplacian(File imageFile) {

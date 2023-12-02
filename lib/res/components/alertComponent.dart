@@ -132,7 +132,7 @@ class Alerts {
                     radius: 30,
                     child: ClipRRect(
                       borderRadius: BorderRadius.all(Radius.circular(30)),
-                      child: Image.asset(imagePath ??" ImageConstants.error"),
+                      child: Image.asset(imagePath ?? "assets/assets_error.png"),
                     ),
                   ),
                 ),

@@ -1,65 +1,69 @@
 import 'dart:io';
-import 'dart:math';
+import 'package:face_liveness/main.dart';
+import 'package:face_liveness/res/components/alertComponent.dart';
 import 'package:http/http.dart' as http;
-import 'package:dio/dio.dart';
+import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:face_liveness/repository/faceMatchingRepository.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as path;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class FaceMatchingViewModel with ChangeNotifier {
   final _faceMatchingRepository = FaceMatchingRepository();
 
   File sourceImageFile = File("");
   File targetImageFile = File("");
-
   Future<void> faceMatchingApiCall(BuildContext context, File file) async {
-    try {
-      changeLoaderState(true);
-
-  
-      File downloadedFile = await urlToFile(
-          "https://virtuo.cgg.gov.in/EmployeeProfileIcon/2254employeeimage20231113172753_052.png");
-      
-
-      // targetImageFile = File(res);
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      if (sourceImageFile != null || targetImageFile != null) {
-        final response = await _faceMatchingRepository.FaceMatchingInfoNew(
-            file, downloadedFile, context);
-        print("------------- ${response.message}");
-        if (response != "" || response != []) {
-          if (response.result != null) {
-            changeLoaderState(false);
-            response.result?.forEach((element) {
-              print("responseeeeeee ${element.sourceImageFace}");
-            });
-            notifyListeners();
-          } else {
-            /*   changeLoaderState(false);
-          Alerts.showAlertDialog(context, response.statusMessage,
-              Title: "app_name".tr(), onpressed: () {
+    /*    try { */
+    File downloadedFile = await urlToFile(
+        "http://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/2251employeeimage20230724114703_610.png");
+    // "https://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/1773employeeimage20230724112453_408.png");
+    //  "https://virtuo.cgg.gov.in/EmployeeProfileIcon/2254employeeimage20231113172753_052.png");
+    final response = await _faceMatchingRepository.FaceMatchingInfoNew(
+        file, downloadedFile, context);
+    print(
+        "response in view model ${response.result?[0].faceMatches?[0].similarity}");
+    if (response != "" || response != []) {
+      if (response.result != null) {
+        if (response.result != null &&
+            response.result!.isNotEmpty &&
+            response.result![0].faceMatches != null &&
+            response.result![0].faceMatches!.isNotEmpty &&
+            response.result![0].faceMatches![0].similarity != null &&
+            response.result![0].faceMatches![0].similarity! > 0.9) {
+          Alerts.showAlertDialog(context, "Face Matched Successfully.",
+              imagePath: "assets/assets_correct.png",
+              Title: "Face Recognition", onpressed: () {
             Navigator.pop(context);
-          }, buttontext: "ok".tr()); */
-          }
+          }, buttontext: "ok", buttoncolor: Colors.green);
         } else {
-          /*  changeLoaderState(false);
-        Alerts.showAlertDialog(
-            context, "${"server_not".tr()}, ${"try_again".tr()}.",
-            Title: "app_name".tr(), onpressed: () {
-          Navigator.pop(context);
-        }, buttontext: "ok".tr()); */
+          Alerts.showAlertDialog(context, "Face Not Matched.",
+              imagePath: "assets/assets_error.png",
+              Title: "Face Recognition", onpressed: () {
+            Navigator.pop(context);
+          }, buttontext: "ok");
         }
+      } else {
+        Alerts.showAlertDialog(context, response.message,
+            imagePath: "assets/assets_error.png",
+            Title: "Face Recognition", onpressed: () {
+          Navigator.pop(context);
+        }, buttontext: "ok");
       }
-    } catch (e) {
-      /*   changeLoaderState(false);
+    } else {
       Alerts.showAlertDialog(
-          context, "${"server_not".tr()}, ${"try_again".tr()}.",
-          Title: "app_name".tr(), onpressed: () {
+          context, "Something Went Wrong, Please Try Again Later.",
+          imagePath: "assets/assets_error.png",
+          Title: "Face Recognition", onpressed: () {
         Navigator.pop(context);
-      }, buttontext: "ok".tr()); */
+      }, buttontext: "ok");
     }
+    /*  } catch (e) {
+      Alerts.showAlertDialog(
+          context, "Server Not Responding, Please Try Again Later.",
+          Title: "Face Recognition", onpressed: () {
+        Navigator.pop(context);
+      }, buttontext: "ok");
+    } */
   }
 
   bool isLoaderVisible = false;
@@ -68,81 +72,57 @@ class FaceMatchingViewModel with ChangeNotifier {
     notifyListeners();
   }
 
-  String extractFileNameFromUrl(String url) {
-    Uri uri = Uri.parse(url);
-
-    String fileName = path.basename(uri.path);
-    // print("file nameee ${fileName}");
-    return fileName;
-  }
-
   Future<File> urlToFile(String imageUrl) async {
-  
-    var rng = new Random();
-  
-    Directory tempDir = await getTemporaryDirectory();
-  
-    String tempPath = tempDir.path;
-   
-    File file = new File('$tempPath/' + (rng.nextInt(100)).toString() + '.png');
-    
-    Uri uri = Uri.parse(imageUrl);
-    // call http.get method and pass Uri instead of String.
-    http.Response response = await http.get(uri);
-    // write bodyBytes received in response to file.
-    await file.writeAsBytes(response.bodyBytes);
-    // now return the file which is created with a random name in
-    // the temporary directory, and image bytes from the response are written to that file.
-    return file;
+    try {
+      Directory tempDir = await getTemporaryDirectory();
+      String tempPath = tempDir.path;
+      File file = File('$tempPath/profile.jpg');
+      http.Client client = http.Client();
+      http.Response response = await client.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        if (await isFileReadableAndAccessible(file)) {
+          print("readable and accessible ${file.path}");
+          img.Image? originalImage = img.decodeImage(file.readAsBytesSync());
+          File reducedSizeFile = await compressImage(originalImage, 1000);
+          return reducedSizeFile;
+        } else {
+          print("File not readable or accessible.");
+          throw FileSystemException('File not readable or accessible.');
+        }
+      } else {
+        print("Failed to load image, status code ${response.statusCode}");
+        throw http.ClientException(
+            'Failed to load image, status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating file from URL: $e');
+      throw e;
+    }
   }
 
-  Future<String> downloadFile(String url, String baseFileName, context) async {
-    print('Downloading file from $url');
-    Directory? externalDir;
-    externalDir = Directory('/data/user/0/com.example.face_liveness/cache');
-    print('External Storage Directory: ${externalDir.path}');
-    int counter = 0;
-    String fileName = baseFileName;
-
-    while (await File('${externalDir.path}/$fileName').exists()) {
-      counter++;
-      String extension = path.extension(baseFileName);
-      String fileNameWithoutExtension =
-          path.basenameWithoutExtension(baseFileName);
-      fileName = '$fileNameWithoutExtension($counter)$extension';
-    }
-
-    final filePath = '${externalDir.path}/$fileName';
-    print('File path to download: $filePath');
-
-    final dio = Dio();
-
+  Future<bool> isFileReadableAndAccessible(File file) async {
     try {
-      await dio.download(url, filePath,
-          onReceiveProgress: (actualBytes, totalBytes) {
-        var percentage = actualBytes / totalBytes * 100;
-        if (percentage < 100) {
-          //EasyLoading.showProgress(percentage, status: "Downloading...");
-        } else {
-          return;
-          //EasyLoading.dismiss;
-          //AppToast().showToast("$fileName is downloaded in Download Folder");
-        }
-      });
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        print('Error downloading file: File not found');
-      } else {
-        print('Error downloading file: ${e.message}');
-      }
-      return "";
-    } catch (error) {
-      print('Error downloading file: $error');
-      return "";
+      return file.existsSync() && await file.readAsBytes() != null;
+    } catch (e) {
+      print('Error checking file readability: $e');
+      return false;
     }
+  }
 
-    print('File downloaded to $filePath');
-    notifyListeners();
-    return filePath;
+  Future<File> compressImage(
+      img.Image? originalImage, int targetFileSizeKB) async {
+    int quality = 90; // Initial quality setting
+    List<int> compressedBytes = img.encodeJpg(originalImage!, quality: quality);
+    while (compressedBytes.length > targetFileSizeKB * 1024 && quality > 0) {
+      quality -= 10;
+      compressedBytes = img.encodeJpg(originalImage, quality: quality);
+    }
+    Directory tempDir = await getTemporaryDirectory();
+    String tempPath = tempDir.path;
+    File compressedFile = File('$tempPath/reduced_size.jpg');
+    await compressedFile.writeAsBytes(compressedBytes);
+
+    return compressedFile;
   }
 }

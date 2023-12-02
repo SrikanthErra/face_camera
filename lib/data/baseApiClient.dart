@@ -15,7 +15,7 @@ class BaseApiClient {
               error.type == DioExceptionType.receiveTimeout ||
               error.type == DioExceptionType.badResponse) {
             // Show an alert to the user that the server is not responding
-            print('Server is not responding');
+            print('Server is not responding --${error.type}');
           }
           // Pass the error to the next interceptor
           handler.next(error);
@@ -37,21 +37,21 @@ class BaseApiClient {
     } on DioException catch (error) {
       if (error.type == DioExceptionType.connectionTimeout) {
         // Handle connection timeout error
-       /*  String errorMessage = "Connection timeout occurred.";
+        /*  String errorMessage = "Connection timeout occurred.";
         ErrorHandlingUtils().showErrorDialog(context, errorMessage); */
       } else if (error.type == DioExceptionType.receiveTimeout) {
         //Handle receive timeout error
-       /*  String errorMessage = "Receive timeout occurred.";
+        /*  String errorMessage = "Receive timeout occurred.";
         ErrorHandlingUtils().showErrorDialog(context, errorMessage); */
       } else {
         // Handle other Dio errors
-       // String errorMessage = ErrorHandlingUtils.handleError(error, context);
-      //  ErrorHandlingUtils().showErrorDialog(context, errorMessage);
+        // String errorMessage = ErrorHandlingUtils.handleError(error, context);
+        //  ErrorHandlingUtils().showErrorDialog(context, errorMessage);
       }
     } catch (error) {
       // Handle other errors
-     //  String errorMessage = ErrorHandlingUtils.handleError(error, context);
-     // ErrorHandlingUtils().showErrorDialog(context, errorMessage);
+      //  String errorMessage = ErrorHandlingUtils.handleError(error, context);
+      // ErrorHandlingUtils().showErrorDialog(context, errorMessage);
       return null;
     }
   }
@@ -62,10 +62,7 @@ class BaseApiClient {
       final response = await _client.post(
         url,
         data: payload,
-        options: Options(
-          headers: {'Content-Type': 'multipart/form-data'},
-        ),
-        
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
       print("responseeeeeeeeeeeee ${response.data}");
       return response.data;
@@ -83,12 +80,13 @@ class BaseApiClient {
         /*  String errorMessage = ErrorHandlingUtils.handleError(error, context);
          ErrorHandlingUtils().showErrorDialog(context, errorMessage); */
       }
-      return error.response?.data;
+      // return error.response?.data;
     } catch (error) {
+      print("error in api clinet ${error}");
       // Handle other errors
-     /*   String errorMessage = ErrorHandlingUtils.handleError(error, context);
+      /*   String errorMessage = ErrorHandlingUtils.handleError(error, context);
        ErrorHandlingUtils().showErrorDialog(context, errorMessage); */
-      return error;
+      // return error;
     }
   }
 }
@@ -113,7 +111,7 @@ class LoggingInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-     print('Received response: ${response.data}');
+    print('Received response: ${response.data}');
     super.onResponse(response, handler);
   }
 }
