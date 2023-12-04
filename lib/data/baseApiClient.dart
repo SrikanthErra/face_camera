@@ -89,6 +89,7 @@ class BaseApiClient {
       // return error;
     }
   }
+  
 }
 
 // CustomInterceptor adds a custom header to every request

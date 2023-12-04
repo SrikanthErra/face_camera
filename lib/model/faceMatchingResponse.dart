@@ -76,7 +76,7 @@ class SourceImageFace {
 }
 
 class Box {
-  double? probability;
+  dynamic probability;
   int? xMax;
   int? yMax;
   int? xMin;
@@ -94,7 +94,7 @@ class Box {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['probability'] = this.probability;
+    data['probability'] = (this.probability);
     data['x_max'] = this.xMax;
     data['y_max'] = this.yMax;
     data['x_min'] = this.xMin;

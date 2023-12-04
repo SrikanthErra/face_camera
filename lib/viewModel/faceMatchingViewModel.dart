@@ -1,6 +1,7 @@
 import 'dart:io';
-import 'package:face_liveness/main.dart';
+
 import 'package:face_liveness/res/components/alertComponent.dart';
+import 'package:face_liveness/res/routes/app_routes.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
@@ -33,20 +34,21 @@ class FaceMatchingViewModel with ChangeNotifier {
           Alerts.showAlertDialog(context, "Face Matched Successfully.",
               imagePath: "assets/assets_correct.png",
               Title: "Face Recognition", onpressed: () {
-            Navigator.pop(context);
+          
+            Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
           }, buttontext: "ok", buttoncolor: Colors.green);
         } else {
           Alerts.showAlertDialog(context, "Face Not Matched.",
               imagePath: "assets/assets_error.png",
               Title: "Face Recognition", onpressed: () {
-            Navigator.pop(context);
+            Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
           }, buttontext: "ok");
         }
       } else {
         Alerts.showAlertDialog(context, response.message,
             imagePath: "assets/assets_error.png",
             Title: "Face Recognition", onpressed: () {
-          Navigator.pop(context);
+          Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
         }, buttontext: "ok");
       }
     } else {
@@ -54,7 +56,7 @@ class FaceMatchingViewModel with ChangeNotifier {
           context, "Something Went Wrong, Please Try Again Later.",
           imagePath: "assets/assets_error.png",
           Title: "Face Recognition", onpressed: () {
-        Navigator.pop(context);
+        Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
       }, buttontext: "ok");
     }
     /*  } catch (e) {
