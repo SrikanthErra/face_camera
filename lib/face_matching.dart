@@ -1,5 +1,7 @@
 
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart' as tflite;
 
@@ -17,16 +19,24 @@ class FaceMatching {
       interpreter = await tflite.Interpreter.fromAsset('assets/$MODEL_FILE');
       print("interpreter loaded ${interpreter}");
       return compare(img1, img2);
+      //return 0.1;
     } catch (e) {
       print('Error loading model: $e');
       return 0.0;
     }
   }
 
-  Future<double> compare(img.Image image1, img.Image image2) async {
-    img.Image bitmapScale1 = img.copyResize(image1,
+  Future<double> compare(File image1, File image2) async {
+
+     List<int> bytes = await image1.readAsBytes();
+    img.Image? imageFile = img.decodeImage(Uint8List.fromList(bytes));
+
+    List<int> bytes1 = await image2.readAsBytes();
+    img.Image? imageDownloadedFile = img.decodeImage(Uint8List.fromList(bytes1));
+
+    img.Image bitmapScale1 = img.copyResize(imageFile! ,
         width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
-    img.Image bitmapScale2 = img.copyResize(image2,
+    img.Image bitmapScale2 = img.copyResize(imageDownloadedFile!,
         width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
 
     List<List<List<List<double>>>> datasets =
@@ -108,6 +118,7 @@ class FaceMatching {
         result[y][x] = [r, g, b];
       }
     }
+    print("result1111111111111111111111 ${result}");
     return result;
   }
 }

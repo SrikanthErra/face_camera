@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:face_liveness/face_matching.dart';
 import 'package:face_liveness/res/components/alertComponent.dart';
 import 'package:face_liveness/res/routes/app_routes.dart';
 import 'package:http/http.dart' as http;
@@ -16,10 +17,20 @@ class FaceMatchingViewModel with ChangeNotifier {
   Future<void> faceMatchingApiCall(BuildContext context, File file) async {
     /*    try { */
     File downloadedFile = await urlToFile(
-        "http://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/2251employeeimage20230724114703_610.png");
+        "https://virtuo.cgg.gov.in/EmployeeProfileIcon/2254employeeimage20231113172753_052.png");
+    //http://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/2251employeeimage20230724114703_610.png
     // "https://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/1773employeeimage20230724112453_408.png");
     //  "https://virtuo.cgg.gov.in/EmployeeProfileIcon/2254employeeimage20231113172753_052.png");
-    final response = await _faceMatchingRepository.FaceMatchingInfoNew(
+
+    //Local face matching
+
+    double faceMatchScore =
+        await FaceMatching().loadModel(file, downloadedFile);
+    print("faceMatchScore ${faceMatchScore}");
+
+    // Campreefee api call
+
+    /* final response = await _faceMatchingRepository.FaceMatchingInfoNew(
         file, downloadedFile, context);
     print(
         "response in view model ${response.result?[0].faceMatches?[0].similarity}");
@@ -58,7 +69,7 @@ class FaceMatchingViewModel with ChangeNotifier {
           Title: "Face Recognition", onpressed: () {
         Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
       }, buttontext: "ok");
-    }
+    } */
     /*  } catch (e) {
       Alerts.showAlertDialog(
           context, "Server Not Responding, Please Try Again Later.",

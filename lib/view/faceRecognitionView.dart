@@ -38,6 +38,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
         ),
         body: Builder(builder: (context) {
           return SmartFaceCamera(
+            showControls: false,
               autoCapture: true,
               defaultCameraLens: CameraLens.front,
               onCapture: (File? image) async {
@@ -59,7 +60,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
                 setState(() {});
               }, */
               onFaceDetected: (Face? face) {
-                print("Face detected $face");
+                print("Face detected ${face?.boundingBox}");
                 setState(() {
                   detectedFace = face;
                 });
@@ -90,14 +91,15 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
     img.Image capturedImage =
         img.decodeImage(File(_capturedImage?.path ?? "").readAsBytesSync())!;
     if (detectedFace != null && detectedFace!.boundingBox != null) {
-      img.Image faceCrop = img.copyCrop(
+      /* img.Image faceCrop = img.copyCrop(
         capturedImage,
-        x: detectedFace!.boundingBox.left.toInt(),
-        y: detectedFace!.boundingBox.top.toInt() + 50,
-        width: detectedFace!.boundingBox.width.toInt(),
-        height: detectedFace!.boundingBox.height.toInt(),
+        x: detectedFace!.boundingBox.left.toInt() - 100,
+        y: detectedFace!.boundingBox.top.toInt() - 100,
+        width: detectedFace!.boundingBox.width.toInt() + 150,
+        height: detectedFace!.boundingBox.height.toInt() + 150,
       );
-      final jpg = img.encodeJpg(faceCrop);
+      final jpg = img.encodeJpg(faceCrop); */
+      final jpg = img.encodeJpg(capturedImage);
       cropSaveFile = File(_capturedImage?.path ?? "");
       await cropSaveFile?.writeAsBytes(jpg);
       var laplacianScore = laplacian(cropSaveFile!);
@@ -107,11 +109,12 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
         FaceAntiSpoofing faceAntiSpoofing = FaceAntiSpoofing();
         antiSpoofingScore = await faceAntiSpoofing.loadModel(cropSaveFile);
         print("antiSpoofingScoreeeeeeeeeeeee ${antiSpoofingScore}");
-        setState(() {});
+        //setState(() {});
         if (antiSpoofingScore! < THRESHOLD) {
           faceRecog = cropSaveFile;
 
           print("face recognised!!!!!!!!!!!!!!");
+          
 
           await faceMatchingProvider.faceMatchingApiCall(
               context, cropSaveFile!);
