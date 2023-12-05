@@ -28,6 +28,17 @@ class FaceMatchingViewModel with ChangeNotifier {
         await FaceMatching().loadModel(file, downloadedFile);
     print("faceMatchScore ${faceMatchScore}");
 
+    if (faceMatchScore > 0.9) {
+      Alerts.showAlertDialog(context, "Face Matched Successfully.",
+          imagePath: "assets/assets_correct.png",
+          Title: "Face Recognition", onpressed: () {
+        Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
+      }, buttontext: "ok", buttoncolor: Colors.green);
+    }
+    else {
+      
+    }
+
     // Campreefee api call
 
     /* final response = await _faceMatchingRepository.FaceMatchingInfoNew(
