@@ -28,7 +28,7 @@ class FaceMatchingViewModel with ChangeNotifier {
         await FaceMatching().loadModel(file, downloadedFile);
     print("faceMatchScore ${faceMatchScore}");
 
-    if (faceMatchScore > 0.9) {
+    if (faceMatchScore > 0.8) {
       Alerts.showAlertDialog(context, "Face Matched Successfully.",
           imagePath: "assets/assets_correct.png",
           Title: "Face Recognition", onpressed: () {
@@ -36,12 +36,12 @@ class FaceMatchingViewModel with ChangeNotifier {
       }, buttontext: "ok", buttoncolor: Colors.green);
     }
     else {
-      
-    }
 
-    // Campreefee api call
+      // Campreefee api call
 
-    /* final response = await _faceMatchingRepository.FaceMatchingInfoNew(
+      print("campreefee api call----------------");
+
+    final response = await _faceMatchingRepository.FaceMatchingInfoNew(
         file, downloadedFile, context);
     print(
         "response in view model ${response.result?[0].faceMatches?[0].similarity}");
@@ -80,7 +80,11 @@ class FaceMatchingViewModel with ChangeNotifier {
           Title: "Face Recognition", onpressed: () {
         Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
       }, buttontext: "ok");
-    } */
+    }
+
+    }
+
+    
     /*  } catch (e) {
       Alerts.showAlertDialog(
           context, "Server Not Responding, Please Try Again Later.",
