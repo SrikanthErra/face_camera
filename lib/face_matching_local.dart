@@ -1,4 +1,4 @@
-
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart' as tflite;
@@ -7,23 +7,24 @@ class FaceMatching {
   static const String MODEL_FILE = 'MobileFaceNet.tflite';
   static const int INPUT_IMAGE_SIZE = 112;
   static const double THRESHOLD = 0.8;
-
   late tflite.Interpreter interpreter;
 
-  
-
-  Future<double> loadModel(img1, img2) async {
+  Future<double> loadModel(File capturedFile, File profile) async {
     try {
       interpreter = await tflite.Interpreter.fromAsset('assets/$MODEL_FILE');
-      print("interpreter loaded ${interpreter}");
-      return compare(img1, img2);
+      print(
+          "interpreter loaded in matching ${capturedFile.path},${profile.path}");
+      var comparedResult = await compareFiles(capturedFile, profile);
+      print("comparedResult in matching ${comparedResult}");
+      return comparedResult;
+      // return compareFiles(capturedFile, capturedFile);
     } catch (e) {
       print('Error loading model: $e');
       return 0.0;
     }
   }
 
-  Future<double> compare(img.Image image1, img.Image image2) async {
+  /* Future<double> compare(img.Image image1, img.Image image2) async {
     img.Image bitmapScale1 = img.copyResize(image1,
         width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
     img.Image bitmapScale2 = img.copyResize(image2,
@@ -35,6 +36,32 @@ class FaceMatching {
         List.generate(2, (index) => List.filled(192, 0.0));
     interpreter.run(datasets, embeddings);
     _L2Normalize(embeddings, 1e-10);
+    return _evaluate(embeddings);
+  } */
+  Future<double> compareFiles(File file1, File file2) async {
+    // Read images from files
+    img.Image image1 = img.decodeImage(await file1.readAsBytes())!;
+    img.Image image2 = img.decodeImage(await file2.readAsBytes())!;
+
+    // Resize images
+    img.Image bitmapScale1 = img.copyResize(image1,
+        width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
+    img.Image bitmapScale2 = img.copyResize(image2,
+        width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
+
+    // Get datasets
+    List<List<List<List<double>>>> datasets =
+        _getTwoImageDatasets(bitmapScale1, bitmapScale2);
+
+    // Run interpreter
+    List<List<double>> embeddings =
+        List.generate(2, (index) => List.filled(192, 0.0));
+    interpreter.run(datasets, embeddings);
+
+    // Normalize embeddings
+    _L2Normalize(embeddings, 1e-10);
+
+    // Evaluate and return the result
     return _evaluate(embeddings);
   }
 

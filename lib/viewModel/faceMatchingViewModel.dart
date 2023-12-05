@@ -14,7 +14,7 @@ class FaceMatchingViewModel with ChangeNotifier {
   File sourceImageFile = File("");
   File targetImageFile = File("");
   Future<void> faceMatchingApiCall(BuildContext context, File file) async {
-    /*    try { */
+   
     File downloadedFile = await urlToFile(
         "http://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/2251employeeimage20230724114703_610.png");
     // "https://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/1773employeeimage20230724112453_408.png");
@@ -59,13 +59,7 @@ class FaceMatchingViewModel with ChangeNotifier {
         Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
       }, buttontext: "ok");
     }
-    /*  } catch (e) {
-      Alerts.showAlertDialog(
-          context, "Server Not Responding, Please Try Again Later.",
-          Title: "Face Recognition", onpressed: () {
-        Navigator.pop(context);
-      }, buttontext: "ok");
-    } */
+   
   }
 
   bool isLoaderVisible = false;
