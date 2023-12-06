@@ -1,33 +1,37 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart' as tflite;
 
 class FaceMatching {
   static const String MODEL_FILE = 'MobileFaceNet.tflite';
   static const int INPUT_IMAGE_SIZE = 112;
-  static const double THRESHOLD = 0.8;
+  static const double THRESHOLD = 0.9;
+
   late tflite.Interpreter interpreter;
 
-  Future<double> loadModel(File capturedFile, File profile) async {
+  Future<double> loadModel(img1, img2) async {
     try {
       interpreter = await tflite.Interpreter.fromAsset('assets/$MODEL_FILE');
-      print(
-          "interpreter loaded in matching ${capturedFile.path},${profile.path}");
-      var comparedResult = await compareFiles(capturedFile, profile);
-      print("comparedResult in matching ${comparedResult}");
-      return comparedResult;
-      // return compareFiles(capturedFile, capturedFile);
+      return compare(img1, img2);
     } catch (e) {
       print('Error loading model: $e');
       return 0.0;
     }
   }
 
-  /* Future<double> compare(img.Image image1, img.Image image2) async {
-    img.Image bitmapScale1 = img.copyResize(image1,
+  Future<double> compare(File image1, File image2) async {
+    List<int> bytes = await image1.readAsBytes();
+    img.Image? imageFile = img.decodeImage(Uint8List.fromList(bytes));
+
+    List<int> bytes1 = await image2.readAsBytes();
+    img.Image? imageDownloadedFile =
+        img.decodeImage(Uint8List.fromList(bytes1));
+
+    img.Image bitmapScale1 = img.copyResize(imageFile!,
         width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
-    img.Image bitmapScale2 = img.copyResize(image2,
+    img.Image bitmapScale2 = img.copyResize(imageDownloadedFile!,
         width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
 
     List<List<List<List<double>>>> datasets =
@@ -36,32 +40,6 @@ class FaceMatching {
         List.generate(2, (index) => List.filled(192, 0.0));
     interpreter.run(datasets, embeddings);
     _L2Normalize(embeddings, 1e-10);
-    return _evaluate(embeddings);
-  } */
-  Future<double> compareFiles(File file1, File file2) async {
-    // Read images from files
-    img.Image image1 = img.decodeImage(await file1.readAsBytes())!;
-    img.Image image2 = img.decodeImage(await file2.readAsBytes())!;
-
-    // Resize images
-    img.Image bitmapScale1 = img.copyResize(image1,
-        width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
-    img.Image bitmapScale2 = img.copyResize(image2,
-        width: INPUT_IMAGE_SIZE, height: INPUT_IMAGE_SIZE);
-
-    // Get datasets
-    List<List<List<List<double>>>> datasets =
-        _getTwoImageDatasets(bitmapScale1, bitmapScale2);
-
-    // Run interpreter
-    List<List<double>> embeddings =
-        List.generate(2, (index) => List.filled(192, 0.0));
-    interpreter.run(datasets, embeddings);
-
-    // Normalize embeddings
-    _L2Normalize(embeddings, 1e-10);
-
-    // Evaluate and return the result
     return _evaluate(embeddings);
   }
 

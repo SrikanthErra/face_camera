@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'package:face_camera/face_camera.dart';
+import 'package:face_liveness/face_matching.dart';
 import 'package:face_liveness/res/components/alertComponent.dart';
 import 'package:face_liveness/res/routes/app_routes.dart';
 import 'package:http/http.dart' as http;
@@ -10,56 +11,82 @@ import 'package:flutter/material.dart';
 
 class FaceMatchingViewModel with ChangeNotifier {
   final _faceMatchingRepository = FaceMatchingRepository();
-
-  File sourceImageFile = File("");
-  File targetImageFile = File("");
-  Future<void> faceMatchingApiCall(BuildContext context, File file) async {
-   
+  final FaceDetector _faceDetector = FaceDetector(
+    options: FaceDetectorOptions(
+      enableContours: true,
+      enableLandmarks: true,
+    ),
+  );
+  File? cropSaveFile;
+  Future<void> faceMatchingApiCall(
+      BuildContext buildContext, File file, Face? detectedFace) async {
     File downloadedFile = await urlToFile(
-        "http://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/2251employeeimage20230724114703_610.png");
-    // "https://uat9.cgg.gov.in/virtuosuite/EmployeeProfileIcon/1773employeeimage20230724112453_408.png");
-    //  "https://virtuo.cgg.gov.in/EmployeeProfileIcon/2254employeeimage20231113172753_052.png");
-    final response = await _faceMatchingRepository.FaceMatchingInfoNew(
-        file, downloadedFile, context);
-    print(
-        "response in view model ${response.result?[0].faceMatches?[0].similarity}");
-    if (response != "" || response != []) {
-      if (response.result != null) {
-        if (response.result != null &&
-            response.result!.isNotEmpty &&
-            response.result![0].faceMatches != null &&
-            response.result![0].faceMatches!.isNotEmpty &&
-            response.result![0].faceMatches![0].similarity != null &&
-            response.result![0].faceMatches![0].similarity! > 0.9) {
-          Alerts.showAlertDialog(context, "Face Matched Successfully.",
-              imagePath: "assets/assets_correct.png",
-              Title: "Face Recognition", onpressed: () {
-          
-            Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
-          }, buttontext: "ok", buttoncolor: Colors.green);
+        "https://virtuo.cgg.gov.in/EmployeeProfileIcon/2251employeeimage20230925121121_280.png");
+    File capturedEnhancedFile = await _enhanceImage(file);
+    File downloadedEnhancedFile = await _enhanceProfileImage(downloadedFile);
+    final inputImage = InputImage.fromFilePath(downloadedFile.path);
+    final faces = await _faceDetector.processImage(inputImage);
+    cropProfile(faces[0], downloadedEnhancedFile);
+    print("enhanced file ${capturedEnhancedFile.path}");
+
+    double faceMatchScore = await FaceMatching()
+        .loadModel(capturedEnhancedFile, downloadedEnhancedFile);
+    print("faceMatchScore ${faceMatchScore}");
+
+    if (faceMatchScore > 0.9) {
+      Alerts.showAlertDialog(buildContext, "Face Matched Successfully.",
+          imagePath: "assets/assets_correct.png",
+          Title: "Face Recognition", onpressed: () {
+        Navigator.pushReplacementNamed(buildContext, AppRoutes.FaceDetectView);
+      }, buttontext: "ok", buttoncolor: Colors.green);
+    } else {
+      Alerts.showAlertDialog(buildContext, "Face Not Matched",
+          imagePath: "assets/assets_error.png",
+          Title: "Face Recognition", onpressed: () {
+        Navigator.pushReplacementNamed(buildContext, AppRoutes.FaceDetectView);
+      }, buttontext: "ok");
+      // Campreefee api call
+      /*   print("campreefee api call----------------");
+      final response = await _faceMatchingRepository.FaceMatchingInfoNew(
+          capturedEnhancedFile, downloadedFile, context);
+      print(
+          "response in view model ${response.result?[0].faceMatches?[0].similarity}");
+      if (response != "" || response != []) {
+        if (response.result != null) {
+          if (response.result != null &&
+              response.result!.isNotEmpty &&
+              response.result![0].faceMatches != null &&
+              response.result![0].faceMatches!.isNotEmpty &&
+              response.result![0].faceMatches![0].similarity != null &&
+              response.result![0].faceMatches![0].similarity! > 0.9) {
+            Alerts.showAlertDialog(context, "Face Matched Successfully.",
+                imagePath: "assets/assets_correct.png",
+                Title: "Face Recognition", onpressed: () {
+              Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
+            }, buttontext: "ok", buttoncolor: Colors.green);
+          } else {
+            Alerts.showAlertDialog(context, "Face Not Matched.",
+                imagePath: "assets/assets_error.png",
+                Title: "Face Recognition", onpressed: () {
+              Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
+            }, buttontext: "ok");
+          }
         } else {
-          Alerts.showAlertDialog(context, "Face Not Matched.",
+          Alerts.showAlertDialog(context, response.message,
               imagePath: "assets/assets_error.png",
               Title: "Face Recognition", onpressed: () {
             Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
           }, buttontext: "ok");
         }
       } else {
-        Alerts.showAlertDialog(context, response.message,
+        Alerts.showAlertDialog(
+            context, "Something Went Wrong, Please Try Again Later.",
             imagePath: "assets/assets_error.png",
             Title: "Face Recognition", onpressed: () {
           Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
         }, buttontext: "ok");
-      }
-    } else {
-      Alerts.showAlertDialog(
-          context, "Something Went Wrong, Please Try Again Later.",
-          imagePath: "assets/assets_error.png",
-          Title: "Face Recognition", onpressed: () {
-        Navigator.pushReplacementNamed(context, AppRoutes.FaceDetectView);
-      }, buttontext: "ok");
+      } */
     }
-   
   }
 
   bool isLoaderVisible = false;
@@ -120,5 +147,51 @@ class FaceMatchingViewModel with ChangeNotifier {
     await compressedFile.writeAsBytes(compressedBytes);
 
     return compressedFile;
+  }
+
+  Future<File> _enhanceImage(File? file) async {
+    img.Image? image = img.decodeImage(await file!.readAsBytes());
+    // Example: Increase brightness and contrast
+    img.adjustColor(
+      image!,
+      brightness: 1.2,
+    );
+    // Save the enhanced image
+    Directory tempDir = await getTemporaryDirectory();
+    File enhancedFile = File('${tempDir.path}/enhanced_image.jpg');
+    enhancedFile.writeAsBytesSync(img.encodeJpg(image));
+    return enhancedFile;
+  }
+
+  Future<File> _enhanceProfileImage(File? file) async {
+    img.Image? image = img.decodeImage(await file!.readAsBytes());
+    // Example: Increase brightness and contrast
+    img.adjustColor(
+      image!,
+      brightness: 1.2,
+    );
+    // Save the enhanced image
+    Directory tempDir = await getTemporaryDirectory();
+    File enhancedFile = File('${tempDir.path}/enhancedProfileImage.jpg');
+    enhancedFile.writeAsBytesSync(img.encodeJpg(image));
+    return enhancedFile;
+  }
+
+  cropProfile(Face? detectedFace, File? profileImage) async {
+    img.Image capturedImage =
+        img.decodeImage(File(profileImage?.path ?? "").readAsBytesSync())!;
+    if (detectedFace != null && detectedFace.boundingBox != null) {
+      img.Image faceCrop = img.copyCrop(
+        capturedImage,
+        x: detectedFace.boundingBox.left.toInt() - 50,
+        y: detectedFace.boundingBox.top.toInt() - 100,
+        width: detectedFace.boundingBox.width.toInt() + 120,
+        height: detectedFace.boundingBox.height.toInt() + 120,
+      );
+      final jpg = img.encodeJpg(faceCrop);
+      cropSaveFile = File(profileImage?.path ?? "");
+      await cropSaveFile?.writeAsBytes(jpg);
+      print("cropSaveFile path ${cropSaveFile?.path}");
+    }
   }
 }
